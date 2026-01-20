@@ -53,3 +53,4 @@ dist/
 # ======================
 secrets/
 config/local.yml
+EOF
