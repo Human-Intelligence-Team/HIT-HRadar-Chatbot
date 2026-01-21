@@ -7,9 +7,12 @@ class ChatService:
         self.vector = VectorStore()
         self.llm = LlmClient()
 
-    def handle(self, route: Route, message: str):
+    def handle(self, route: Route, message: str, company_id: int):
         if route == Route.DOCUMENT:
-            docs = self.vector.search(message)
+            docs = self.vector.search(
+                query=message,
+                company_id=company_id,
+            )
             if not docs:
                 return "관련 문서를 찾을 수 없습니다."
 

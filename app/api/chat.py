@@ -14,14 +14,22 @@ class ChatRequest(BaseModel):
     sessionId: str
 
 @router.post("")
-def chat(req: ChatRequest, x_user_id: str = Header(None)):
-    if not x_user_id:
+def chat(
+        req: ChatRequest,
+        x_user_id: str = Header(None),
+        x_company_id: str = Header(None),
+):
+    if not x_user_id or not x_company_id:
         raise HTTPException(status_code=401)
 
     route = classifier.classify(req.message)
 
     append_message(req.sessionId, int(x_user_id), "user", req.message, route.value)
-    answer = service.handle(route, req.message)
+    answer = service.handle(
+        route,
+        req.message,
+        int(x_company_id),
+    )
     append_message(req.sessionId, int(x_user_id), "bot", answer, route.value)
 
     return {"answer": answer}

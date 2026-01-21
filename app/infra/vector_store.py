@@ -46,13 +46,21 @@ class VectorStore:
             ],
         )
 
-    def search(self, query: str, limit: int = 3) -> list[dict]:
+    def search(self, query: str, company_id: int, limit: int = 3) -> list[dict]:
         query_vector = self.embed(query)
 
         hits = self.client.search(
             collection_name=self.collection,
             query_vector=query_vector,
             limit=limit,
+            query_filter=Filter(
+                must=[
+                    FieldCondition(
+                        key="companyId",
+                        match=MatchValue(value=company_id),
+                    )
+                ]
+            ),
         )
 
         return [h.payload for h in hits]
