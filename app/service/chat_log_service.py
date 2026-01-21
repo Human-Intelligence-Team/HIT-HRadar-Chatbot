@@ -1,7 +1,7 @@
 from datetime import datetime
 from app.infra.mongo import chat_logs
 
-def append_message(session_id: str, user_id: int, role: str, text: str, intent=None):
+def append_message(session_id, user_id, role, text, route):
     chat_logs.update_one(
         {"sessionId": session_id},
         {
@@ -14,13 +14,11 @@ def append_message(session_id: str, user_id: int, role: str, text: str, intent=N
                 "messages": {
                     "role": role,
                     "text": text,
-                    "intent": intent,
+                    "route": route,
                     "timestamp": datetime.utcnow(),
                 }
             },
-            "$set": {
-                "updatedAt": datetime.utcnow(),
-            },
+            "$set": {"updatedAt": datetime.utcnow()},
         },
         upsert=True,
     )

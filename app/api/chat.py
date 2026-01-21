@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel
-from app.service.intent_classifier import IntentClassifier
+from app.service.route_classifier import RouteClassifier
 from app.service.chat_service import ChatService
 from app.service.chat_log_service import append_message
 
-router = APIRouter(prefix="/chat", tags=["chat"])
+router = APIRouter(prefix="/chat")
 
-classifier = IntentClassifier()
+classifier = RouteClassifier()
 service = ChatService()
 
 class ChatRequest(BaseModel):
@@ -14,42 +14,14 @@ class ChatRequest(BaseModel):
     sessionId: str
 
 @router.post("")
-def chat(
-        req: ChatRequest,
-        x_user_id: str = Header(None),
-        x_user_role: str = Header(None),
-        x_company_id: str = Header(None),
-):
+def chat(req: ChatRequest, x_user_id: str = Header(None)):
     if not x_user_id:
-        raise HTTPException(status_code=401, detail="Unauthorized")
+        raise HTTPException(status_code=401)
 
-    user_id = int(x_user_id)
+    route = classifier.classify(req.message)
 
-    # Intent 분류
-    intent = classifier.classify(req.message)
+    append_message(req.sessionId, int(x_user_id), "user", req.message, route.value)
+    answer = service.handle(route, req.message)
+    append_message(req.sessionId, int(x_user_id), "bot", answer, route.value)
 
-    # user 로그 저장
-    append_message(
-        session_id=req.sessionId,
-        user_id=user_id,
-        role="user",
-        text=req.message,
-        intent=intent.value,
-    )
-
-    # 처리 전략 실행
-    answer = service.handle(intent, req.message, user_id)
-
-    # bot 로그 저장
-    append_message(
-        session_id=req.sessionId,
-        user_id=user_id,
-        role="bot",
-        text=answer,
-        intent=intent.value,
-    )
-
-    return {
-        "intent": intent.value,
-        "answer": answer,
-    }
+    return {"answer": answer}
