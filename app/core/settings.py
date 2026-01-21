@@ -1,24 +1,27 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+
 class Settings(BaseSettings):
-
-    # ===== App =====
+    # App
+    APP_ENV: str = "local"
     APP_NAME: str = "HRadar Chatbot"
-    APP_ENV: str = "local"
 
-    # ===== OpenAI =====
-    OPENAI_API_KEY: str
+    # Gemini
+    GEMINI_API_KEY: str
 
-    # ===== MongoDB =====
+    # Qdrant
+    QDRANT_HOST: str
+    QDRANT_PORT: int
+    QDRANT_COLLECTION: str
+
+    # MongoDB
     MONGO_URI: str
-    MONGO_DB: str = "hradar_chatbot"
-
-    # ===== App =====
-    APP_ENV: str = "local"
+    MONGO_DB: str
 
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
     )
+
 
 settings = Settings()
