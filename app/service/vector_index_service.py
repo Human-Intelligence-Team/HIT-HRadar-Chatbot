@@ -3,7 +3,7 @@ from app.infra.vector_store import VectorStore
 
 class VectorIndexService:
     def __init__(self):
-        self.store = VectorStore()
+        self.store = VectorStore.get_instance()
 
     def index(self, req):
         for c in req.chunks:

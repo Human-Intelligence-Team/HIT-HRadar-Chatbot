@@ -1,6 +1,6 @@
 from app.infra.vector_store import VectorStore
 
-vector = VectorStore()
+vector = VectorStore.get_instance()
 
 docs = [
     {

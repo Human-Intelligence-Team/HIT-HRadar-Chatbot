@@ -15,6 +15,10 @@ class RuleBasedRouteClassifier:
         }
 
     def classify(self, text: str) -> Route:
+        # User-defined priority rule: If text starts with "[규정]", route to DOCUMENT
+        if text.startswith("[규정]"):
+            return Route.DOCUMENT
+
         for route, keywords in self.rules.items():
             if any(keyword in text for keyword in keywords):
                 return route

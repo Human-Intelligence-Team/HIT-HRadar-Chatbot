@@ -4,7 +4,7 @@ from app.service.rule_based_route_classifier import Route
 
 class ChatService:
     def __init__(self):
-        self.vector = VectorStore()
+        self.vector = VectorStore.get_instance()
         self.llm = RuleBasedLlmClient()
 
     def handle(self, route: Route, message: str, company_id: int):
