@@ -1,11 +1,11 @@
 from app.infra.vector_store import VectorStore
-from app.infra.llm_client import LlmClient
-from app.service.route_classifier import Route
+from app.infra.rule_based_llm_client import RuleBasedLlmClient
+from app.service.rule_based_route_classifier import Route
 
 class ChatService:
     def __init__(self):
         self.vector = VectorStore()
-        self.llm = LlmClient()
+        self.llm = RuleBasedLlmClient()
 
     def handle(self, route: Route, message: str, company_id: int):
         if route == Route.DOCUMENT:

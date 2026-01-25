@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel
-from app.service.route_classifier import RouteClassifier
+from app.service.rule_based_route_classifier import RuleBasedRouteClassifier
 from app.service.chat_service import ChatService
 from app.service.chat_log_service import append_message
 
 router = APIRouter(prefix="/chat")
 
-classifier = RouteClassifier()
+classifier = RuleBasedRouteClassifier()
 service = ChatService()
 
 class ChatRequest(BaseModel):

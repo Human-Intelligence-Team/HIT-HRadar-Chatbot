@@ -6,9 +6,6 @@ class Settings(BaseSettings):
     APP_ENV: str = "local"
     APP_NAME: str = "HRadar Chatbot"
 
-    # Gemini
-    GEMINI_API_KEY: str
-
     # Qdrant
     QDRANT_HOST: str
     QDRANT_PORT: int
