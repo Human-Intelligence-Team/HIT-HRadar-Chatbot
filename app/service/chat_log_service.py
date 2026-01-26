@@ -22,3 +22,7 @@ def append_message(session_id, user_id, role, text, route):
         },
         upsert=True,
     )
+
+def get_chat_logs(session_id: str, user_id: int):
+    log = chat_logs.find_one({"sessionId": session_id, "userId": user_id})
+    return log.get("messages", []) if log else []

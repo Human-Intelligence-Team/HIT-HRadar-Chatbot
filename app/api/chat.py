@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Header, HTTPException
+from fastapi import APIRouter, Header, HTTPException, Path
 from pydantic import BaseModel
 from app.service.rule_based_route_classifier import RuleBasedRouteClassifier
 from app.service.chat_service import ChatService
-from app.service.chat_log_service import append_message
+from app.service.chat_log_service import append_message, get_chat_logs
+from typing import List, Dict, Any
 
 router = APIRouter(prefix="/chat")
 
@@ -33,3 +34,19 @@ def chat(
     append_message(req.sessionId, int(x_user_id), "bot", answer, route.value)
 
     return {"answer": answer}
+
+@router.get(
+    "/{session_id}/logs",
+    response_model=List[Dict[str, Any]],
+    response_description="Get chat logs for a session",
+)
+def get_session_chat_logs(
+    session_id: str = Path(..., title="The ID of the chat session"),
+    x_user_id: str = Header(None),
+):
+    if not x_user_id:
+        raise HTTPException(status_code=401)
+    
+    logs = get_chat_logs(session_id, int(x_user_id))
+    return logs
+

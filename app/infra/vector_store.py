@@ -63,16 +63,15 @@ class VectorStore:
     def embed(self, text: str) -> list[float]:
         return self.embedder.encode(text).tolist()
 
-    def add_document(self, doc: dict) -> bool:
-        vector = self.embed(doc["content"])
+    def add_document(self, point_id: int, vector: list[float], payload: dict) -> bool:
         try:
             self.client.upsert(
                 collection_name=self.collection,
                 points=[
                     PointStruct(
-                        id=str(uuid.uuid4()),
+                        id=point_id,
                         vector=vector,
-                        payload=doc,
+                        payload=payload,
                     )
                 ],
             )
@@ -100,10 +99,29 @@ class VectorStore:
                     ]
                 ),
             )
-            return [h.payload for h in hits]
+            return [{"payload": h.payload, "score": h.score} for h in hits]
         except UnexpectedResponse as e:
             logger.error(f"Qdrant UnexpectedResponse during search: {e}")
             raise QdrantError(f"Failed to search Qdrant due to unexpected response: {e}") from e
         except Exception as e:
             logger.error(f"An unexpected error occurred during search: {e}")
             raise QdrantError(f"Failed to search Qdrant: {e}") from e
+
+    def delete_points_by_document_id(self, document_id: int, company_id: int) -> bool:
+        try:
+            self.client.delete(
+                collection_name=self.collection,
+                points_selector=Filter(
+                    must=[
+                        FieldCondition(key="documentId", match=MatchValue(value=document_id)),
+                        FieldCondition(key="companyId", match=MatchValue(value=company_id)),
+                    ]
+                ),
+            )
+            return True
+        except UnexpectedResponse as e:
+            logger.error(f"Qdrant UnexpectedResponse during delete_points_by_document_id: {e}")
+            raise QdrantError(f"Failed to delete points from Qdrant due to unexpected response: {e}") from e
+        except Exception as e:
+            logger.error(f"An unexpected error occurred during delete_points_by_document_id: {e}")
+            raise QdrantError(f"Failed to delete points from Qdrant: {e}") from e

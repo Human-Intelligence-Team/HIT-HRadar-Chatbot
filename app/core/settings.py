@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     QDRANT_HOST: str
     QDRANT_PORT: int
     QDRANT_COLLECTION: str
+    RELEVANCE_THRESHOLD: float = 0.6
 
     # MongoDB
     MONGO_URI: str

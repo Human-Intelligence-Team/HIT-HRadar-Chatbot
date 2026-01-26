@@ -54,3 +54,8 @@ dist/
 secrets/
 config/local.yml
 EOF
+
+# ======================
+# Qdrant
+# ======================
+qdrant_data/
