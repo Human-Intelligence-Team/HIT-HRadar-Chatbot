@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 from typing import Union
 from app.infra.vector_store import VectorStore
 
@@ -14,11 +15,15 @@ class VectorIndexService:
 
             vector = self.store.embed(c.content)
             payload = {
-                "companyId": req.companyId,
-                "documentId": req.documentId,
-                "chunkId": c.chunkId,
-                "title": c.title if c.title else (req.title if req.title else "Untitled"),
+                "companyId": req.company_id,
+                "documentId": str(req.document_id),
+                "chunkId": f"{req.document_id}_chunk_{c.chunk_id}",
+                "docTitle": req.title if req.title else "Untitled",
+                "sectionTitle": c.section if c.section else (c.title if c.title else ""),
+                "title": req.title if req.title else "Untitled", # Combined/Display title
                 "content": c.content,
+                "originalContent": c.content,
+                "updatedAt": datetime.utcnow().isoformat()
             }
             self.store.add_document(point_id=point_id, vector=vector, payload=payload)
 

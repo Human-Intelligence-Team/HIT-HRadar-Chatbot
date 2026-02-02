@@ -12,6 +12,7 @@ class DocumentIndexEventType(str, Enum):
 class VectorChunkRequest(BaseModel):
     chunk_id: int = Field(..., alias="chunkId")
     title: Optional[str] = None
+    section: Optional[str] = Field(None, alias="section")
     content: str
 
 

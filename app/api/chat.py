@@ -10,7 +10,6 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/chat")
 
-classifier = RuleBasedRouteClassifier()
 service = ChatService()
 
 class ChatRequest(BaseModel):
