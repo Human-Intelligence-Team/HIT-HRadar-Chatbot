@@ -5,4 +5,3 @@ client = MongoClient(settings.MONGO_URI)
 db = client[settings.MONGO_DB]
 
 chat_logs = db["chat_logs"]
-documents = db["documents"]

@@ -9,14 +9,16 @@ service = VectorIndexService()
 
 
 class ChunkPayload(BaseModel):
-    chunkId: int
+    chunkId: str
     content: str
+    title: str = None
 
 
 class IndexRequest(BaseModel):
     companyId: int
-    documentId: int
+    documentId: str
     chunks: List[ChunkPayload]
+    title: str = None
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)

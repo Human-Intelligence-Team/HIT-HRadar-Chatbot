@@ -1,5 +1,6 @@
 import uuid
 import logging
+from typing import Union
 from qdrant_client import QdrantClient
 from qdrant_client.models import (
     VectorParams,
@@ -63,7 +64,7 @@ class VectorStore:
     def embed(self, text: str) -> list[float]:
         return self.embedder.encode(text).tolist()
 
-    def add_document(self, point_id: int, vector: list[float], payload: dict) -> bool:
+    def add_document(self, point_id: Union[int, str], vector: list[float], payload: dict) -> bool:
         try:
             self.client.upsert(
                 collection_name=self.collection,
@@ -107,7 +108,7 @@ class VectorStore:
             logger.error(f"An unexpected error occurred during search: {e}")
             raise QdrantError(f"Failed to search Qdrant: {e}") from e
 
-    def delete_points_by_document_id(self, document_id: int, company_id: int) -> bool:
+    def delete_points_by_document_id(self, document_id: Union[int, str], company_id: int) -> bool:
         try:
             self.client.delete(
                 collection_name=self.collection,

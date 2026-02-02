@@ -1,9 +1,12 @@
 from fastapi import APIRouter, Header, HTTPException, Path
 from pydantic import BaseModel
-from app.service.rule_based_route_classifier import RuleBasedRouteClassifier
+from app.service.rule_based_route_classifier import RuleBasedRouteClassifier, Route
 from app.service.chat_service import ChatService
 from app.service.chat_log_service import append_message, get_chat_logs
+import logging
 from typing import List, Dict, Any
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/chat")
 
@@ -23,7 +26,10 @@ def chat(
     if not x_user_id or not x_company_id:
         raise HTTPException(status_code=401)
 
-    route = classifier.classify(req.message)
+
+
+    # Force route to DOCUMENT as per user's request to bypass intent classification
+    route = Route.DOCUMENT
 
     append_message(req.sessionId, int(x_user_id), "user", req.message, route.value)
     answer = service.handle(
