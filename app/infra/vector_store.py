@@ -114,7 +114,7 @@ class VectorStore:
                 collection_name=self.collection,
                 points_selector=Filter(
                     must=[
-                        FieldCondition(key="documentId", match=MatchValue(value=document_id)),
+                        FieldCondition(key="documentId", match=MatchValue(value=str(document_id))),
                         FieldCondition(key="companyId", match=MatchValue(value=company_id)),
                     ]
                 ),

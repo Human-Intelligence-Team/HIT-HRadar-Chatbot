@@ -19,8 +19,8 @@ class VectorIndexService:
                 "documentId": str(req.document_id),
                 "chunkId": f"{req.document_id}_chunk_{c.chunk_id}",
                 "docTitle": req.title if req.title else "Untitled",
-                "sectionTitle": c.section if c.section else (c.title if c.title else ""),
-                "title": req.title if req.title else "Untitled", # Combined/Display title
+                "sectionTitle": c.title if c.title else "",
+                "title": req.title if req.title else "Untitled", # For backward visibility
                 "content": c.content,
                 "originalContent": c.content,
                 "updatedAt": datetime.utcnow().isoformat()
@@ -28,4 +28,4 @@ class VectorIndexService:
             self.store.add_document(point_id=point_id, vector=vector, payload=payload)
 
     def delete_document_index(self, company_id: int, document_id: Union[int, str]):
-        self.store.delete_points_by_document_id(document_id, company_id)
+        self.store.delete_points_by_document_id(str(document_id), company_id)

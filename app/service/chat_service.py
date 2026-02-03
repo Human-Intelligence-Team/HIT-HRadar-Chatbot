@@ -50,6 +50,10 @@ class ChatService:
                 query_bigrams = get_bigrams(message)
                 
                 scored_results = []
+                # Define common 'filler' or 'intent' words that shouldn't trigger mandatory match alone
+                fillers = {"무엇", "정의", "설명", "방법", "절차", "어떻게", "언제", "어디서", "누가", "왜", "궁금", "알려줘"}
+                salient_roots = [r for r in query_roots if r not in fillers]
+
                 for d in raw_docs:
                     payload = d["payload"]
                     semantic_score = d["score"]
@@ -59,18 +63,24 @@ class ChatService:
                     
                     # Lexical Scoring
                     lexical_score = 0
+                    has_salient_match = False
                     
-                    # 1. Keyword Matching
                     for root in query_roots:
-                        # Priority 1: Specific Section Title (Very Strong)
+                        is_salient = root in salient_roots
+                        match_found = False
+                        
                         if section_title and root in section_title:
                             lexical_score += 5.0
-                        # Priority 2: Parent Document Title (Strong)
+                            match_found = True
                         elif doc_title and root in doc_title:
                             lexical_score += 3.0
-                        # Priority 3: Content (Weak)
+                            match_found = True
                         elif root in content:
                             lexical_score += 0.5
+                            match_found = True
+                        
+                        if is_salient and match_found:
+                            has_salient_match = True
                     
                     # 2. Bigram Overlap (Focused on Section Title for precision)
                     target_text = section_title if section_title else doc_title
@@ -78,18 +88,24 @@ class ChatService:
                     overlap = query_bigrams.intersection(target_bigrams)
                     lexical_score += len(overlap) * 0.5
 
-                    final_score = semantic_score + lexical_score
+                    # Mandatory Match implementation:
+                    # If we have salient keywords but none match, we penalize heavily
+                    if salient_roots and not has_salient_match:
+                        final_score = -1.0 # Force below threshold
+                    else:
+                        final_score = semantic_score + lexical_score
+                        
                     scored_results.append((final_score, semantic_score, lexical_score, payload))
                 
                 scored_results.sort(key=lambda x: x[0], reverse=True)
                 
-                logger.info(f"--- Granular Hybrid Search Results (Query: '{message}') ---")
+                logger.info(f"--- Sophisticated Hybrid Search Results (Query: '{message}') ---")
                 for i, (f_score, s_score, l_score, doc) in enumerate(scored_results[:3]):
                     logger.info(f"Rank {i+1}: Total={f_score:.2f} (Sem={s_score:.2f}, Lex={l_score:.2f}) | Doc='{doc.get('docTitle')}' | Section='{doc.get('sectionTitle')}'")
                 
                 # Relevance Guard
-                if scored_results[0][0] < 0.4:
-                    return "죄송합니다. 요청하신 내용은 현재 등록된 회사 제도 및 규정에서 찾을 수 없습니다."
+                if not scored_results or scored_results[0][0] < 0.5:
+                    return "죄송합니다. 요청하신 내용은 현재 등록된 회사 제도 및 규정에서 찾을 수 없습니다. 인사업무나 규정에 관련한 질문을 부탁드립니다."
 
                 return scored_results[0][3].get("content", "내용을 찾을 수 없습니다.")
             except QdrantError as e:

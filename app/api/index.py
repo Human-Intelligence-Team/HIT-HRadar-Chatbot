@@ -5,28 +5,25 @@ from app.service.vector_index_service import VectorIndexService
 
 router = APIRouter(prefix="/index")
 
+from app.schemas.kafka_event import DocumentIndexEvent, VectorChunkRequest, DocumentIndexEventType
+
+router = APIRouter(prefix="/index")
+
 service = VectorIndexService()
-
-
-class ChunkPayload(BaseModel):
-    chunkId: str
-    content: str
-    title: str = None
-
-
-class IndexRequest(BaseModel):
-    companyId: int
-    documentId: str
-    chunks: List[ChunkPayload]
-    title: str = None
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
 def index_document(
-        req: IndexRequest,
+        req: DocumentIndexEvent,
 ):
     # (선택) 내부 호출 검증
-    service.index(req)
+    if req.type == DocumentIndexEventType.CREATE or req.type == DocumentIndexEventType.UPDATE:
+        if req.type == DocumentIndexEventType.UPDATE:
+            service.delete_document_index(req.company_id, req.document_id)
+        service.index(req)
+    elif req.type == DocumentIndexEventType.DELETE:
+        service.delete_document_index(req.company_id, req.document_id)
+    
     return {"success": True}
 
 

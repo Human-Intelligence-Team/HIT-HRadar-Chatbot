@@ -56,13 +56,14 @@ def chunk_content(content: str, document_id: str, company_id: int, category: str
     for i, chunk_text in enumerate(text_chunks):
         final_content = f"{title}\n{chunk_text}" if title else chunk_text
         result.append({
+            "companyId": company_id,
             "documentId": str(document_id),
             "chunkId": f"{document_id}_chunk_{i}",
-            "companyId": company_id,
+            "docTitle": title,
+            "sectionTitle": title,
+            "title": title,
             "content": final_content,
-            "category": category,
-            "title": title, 
-            "originalContent": chunk_text, # Keep original content for reconstruction if needed
+            "originalContent": chunk_text,
             "updatedAt": datetime.utcnow().isoformat()
         })
     return result
