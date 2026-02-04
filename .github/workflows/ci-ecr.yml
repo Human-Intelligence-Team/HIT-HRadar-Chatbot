@@ -8,7 +8,7 @@ on:
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
   ECR_REPOSITORY: hradar-chatbot
-  SERVICE_DIR: chatbot
+  SERVICE_DIR: .
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
