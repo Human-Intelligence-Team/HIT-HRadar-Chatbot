@@ -33,7 +33,7 @@ class VectorStore:
     def _initialize_store(self):
         if not self._initialized:
             # 로컬 embedding 모델
-            self.embedder = SentenceTransformer("all-MiniLM-L6-v2")
+            self.embedder = SentenceTransformer(settings.EMBEDDING_MODEL_NAME)
 
             self.client = QdrantClient(
                 host=settings.QDRANT_HOST,
@@ -56,7 +56,7 @@ class VectorStore:
             self.client.create_collection(
                 collection_name=self.collection,
                 vectors_config=VectorParams(
-                    size=384,  # all-MiniLM-L6-v2
+                    size=settings.EMBEDDING_SIZE,
                     distance=Distance.COSINE,
                 ),
             )
