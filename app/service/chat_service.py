@@ -3,6 +3,9 @@ from app.infra.rule_based_llm_client import RuleBasedLlmClient
 from app.service.rule_based_route_classifier import Route
 from app.core.settings import settings
 import logging
+import math
+import re
+from collections import Counter
 
 logger = logging.getLogger(__name__)
 
@@ -26,85 +29,18 @@ class ChatService:
                 if not raw_docs:
                     return "관련 문서를 찾을 수 없습니다."
 
-                def get_roots(text):
-                    # Simple heuristic roots for Korean
-                    particles = ["은", "는", "이", "가", "을", "를", "에", "의", "로", "으로", "도", "만", "에서", "부터", "까지"]
-                    words = text.split()
-                    roots = []
-                    for w in words:
-                        clean_w = w.strip("?.!,")
-                        # Remove suffixes
-                        for p in particles:
-                            if clean_w.endswith(p) and len(clean_w) > len(p):
-                                clean_w = clean_w[:-len(p)]
-                                break
-                        if len(clean_w) >= 2:
-                            roots.append(clean_w)
-                    return roots
+                scored_results = self._rank_with_content(message, raw_docs)
 
-                def get_bigrams(text):
-                    clean = text.replace(" ", "")
-                    return {clean[i:i+2] for i in range(len(clean)-1)}
-
-                query_roots = get_roots(message)
-                query_bigrams = get_bigrams(message)
-                
-                scored_results = []
-                # Define common 'filler' or 'intent' words that shouldn't trigger mandatory match alone
-                fillers = {"무엇", "정의", "설명", "방법", "절차", "어떻게", "언제", "어디서", "누가", "왜", "궁금", "알려줘"}
-                salient_roots = [r for r in query_roots if r not in fillers]
-
-                for d in raw_docs:
-                    payload = d["payload"]
-                    semantic_score = d["score"]
-                    doc_title = payload.get("docTitle", "").replace(" ", "")
-                    section_title = payload.get("sectionTitle", "").replace(" ", "")
-                    content = payload.get("content", "")
-                    
-                    # Lexical Scoring
-                    lexical_score = 0
-                    has_salient_match = False
-                    
-                    for root in query_roots:
-                        is_salient = root in salient_roots
-                        match_found = False
-                        
-                        if section_title and root in section_title:
-                            lexical_score += 5.0
-                            match_found = True
-                        elif doc_title and root in doc_title:
-                            lexical_score += 3.0
-                            match_found = True
-                        elif root in content:
-                            lexical_score += 0.5
-                            match_found = True
-                        
-                        if is_salient and match_found:
-                            has_salient_match = True
-                    
-                    # 2. Bigram Overlap (Focused on Section Title for precision)
-                    target_text = section_title if section_title else doc_title
-                    target_bigrams = get_bigrams(target_text)
-                    overlap = query_bigrams.intersection(target_bigrams)
-                    lexical_score += len(overlap) * 0.5
-
-                    # Mandatory Match implementation:
-                    # If we have salient keywords but none match, we penalize heavily
-                    if salient_roots and not has_salient_match:
-                        final_score = -1.0 # Force below threshold
-                    else:
-                        final_score = semantic_score + lexical_score
-                        
-                    scored_results.append((final_score, semantic_score, lexical_score, payload))
-                
                 scored_results.sort(key=lambda x: x[0], reverse=True)
-                
-                logger.info(f"--- Sophisticated Hybrid Search Results (Query: '{message}') ---")
+
+                logger.info(f"--- Hybrid Search Results (Query: '{message}') ---")
                 for i, (f_score, s_score, l_score, doc) in enumerate(scored_results[:3]):
-                    logger.info(f"Rank {i+1}: Total={f_score:.2f} (Sem={s_score:.2f}, Lex={l_score:.2f}) | Doc='{doc.get('docTitle')}' | Section='{doc.get('sectionTitle')}'")
-                
-                # Relevance Guard
-                if not scored_results or scored_results[0][0] < 0.5:
+                    logger.info(
+                        f"Rank {i+1}: Total={f_score:.3f} (Sem={s_score:.3f}, Lex={l_score:.3f}) | Doc='{doc.get('docTitle')}' | Section='{doc.get('sectionTitle')}'"
+                    )
+
+                # Relevance Guard (use combined score)
+                if not scored_results or scored_results[0][0] < settings.RELEVANCE_THRESHOLD:
                     return "죄송합니다. 요청하신 내용은 현재 등록된 회사 제도 및 규정에서 찾을 수 없습니다. 인사업무나 규정에 관련한 질문을 부탁드립니다."
 
                 return scored_results[0][3].get("content", "내용을 찾을 수 없습니다.")
@@ -119,3 +55,61 @@ class ChatService:
 
         logger.info("Responding with default SMALL_TALK message.")
         return "안녕하세요. HRadar 챗봇입니다."
+
+    def _tokenize(self, text: str) -> list[str]:
+        if not text:
+            return []
+        tokens = re.split(r"[^0-9a-zA-Z가-힣]+", text.lower())
+        return [t for t in tokens if len(t) >= 2]
+
+    def _lexical_score(self, query_tokens: list[str], payload: dict) -> float:
+        doc_title = (payload.get("docTitle") or "").lower()
+        section_title = (payload.get("sectionTitle") or "").lower()
+        content = (payload.get("content") or "").lower()
+
+        content_tokens = self._tokenize(content)
+        if not content_tokens:
+            return 0.0
+
+        content_tf = Counter(content_tokens)
+        content_len_norm = math.sqrt(len(content_tokens))
+
+        score = 0.0
+        for token in query_tokens:
+            if token in section_title:
+                score += 4.0
+            elif token in doc_title:
+                score += 2.0
+
+            tf = content_tf.get(token, 0)
+            if tf > 0:
+                score += (1.0 + math.log1p(tf)) / content_len_norm
+
+        # Phrase boost for exact query substring
+        query_text = " ".join(query_tokens)
+        if len(query_text) >= 4 and query_text in content:
+            score += 1.5
+
+        return score
+
+    def _rank_with_content(self, message: str, raw_docs: list[dict]) -> list[tuple[float, float, float, dict]]:
+        query_tokens = self._tokenize(message)
+        if not query_tokens:
+            return [(d["score"], d["score"], 0.0, d["payload"]) for d in raw_docs]
+
+        scored = []
+        lexical_scores = []
+        for d in raw_docs:
+            payload = d["payload"]
+            semantic_score = d["score"]
+            lexical_score = self._lexical_score(query_tokens, payload)
+            lexical_scores.append(lexical_score)
+            scored.append((semantic_score, lexical_score, payload))
+
+        max_lex = max(lexical_scores) if lexical_scores else 0.0
+        combined = []
+        for semantic_score, lexical_score, payload in scored:
+            lex_norm = (lexical_score / max_lex) if max_lex > 0 else 0.0
+            final_score = (semantic_score * 0.7) + (lex_norm * 0.3)
+            combined.append((final_score, semantic_score, lex_norm, payload))
+        return combined
