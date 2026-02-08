@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Header, HTTPException, Path
 from pydantic import BaseModel
-from app.service.rule_based_route_classifier import RuleBasedRouteClassifier, Route
+from app.service.rule_based_route_classifier import Route
 from app.service.chat_service import ChatService
 from app.service.chat_log_service import append_message, get_chat_logs
 import logging
@@ -27,7 +27,7 @@ def chat(
 
 
 
-    # Force route to DOCUMENT as per user's request to bypass intent classification
+    # Force route to DOCUMENT to avoid intent classification
     route = Route.DOCUMENT
 
     append_message(req.sessionId, int(x_user_id), "user", req.message, route.value)
@@ -54,4 +54,3 @@ def get_session_chat_logs(
     
     logs = get_chat_logs(session_id, int(x_user_id))
     return logs
-
